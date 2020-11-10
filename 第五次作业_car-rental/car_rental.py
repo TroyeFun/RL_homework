@@ -1,6 +1,7 @@
 import numpy as np
 import math
 from datetime import datetime as dt
+import os
 
 np.set_printoptions(precision=1, linewidth=200)
 
@@ -12,7 +13,7 @@ lam_return = [3, 2]
 gamma = 0.9
 errorThrd = 1
 
-resume = 0  # -1 by default, or set to specific number to resume checkpoint of corresponding iter
+resume = -1  # -1 by default, or set to specific number to resume checkpoint of corresponding iter
 
 def main():
 
@@ -43,11 +44,15 @@ def main():
 
     V = np.zeros((21, 21))
     pi = np.zeros((21, 21), dtype=np.int)
+    iter_count = -1
 
     if resume >= 0:
         print('resume iter {}'.format(resume))
+        assert os.path.exists('pi-{}.npy'.format(resume)) and os.path.exists('pi-{}.npy'.format(resume)), \
+            'file pi-{} or V-{} not exists.'.format(resume, resume)
         pi = np.load('pi-{}.npy'.format(resume))
         V = np.load('V-{}.npy'.format(resume))
+        iter_count = resume
 
     def Q(s, a):
         i, j = s
@@ -80,7 +85,6 @@ def main():
                         value += p * (reward + gamma * V[nexti, nextj])
         return value
 
-    iter_count = -1
     while True:
         iter_count += 1
 
@@ -134,7 +138,6 @@ def main():
     print(V)
     print(pi)
 
-    import ipdb; ipdb.set_trace()    
 
 if __name__ == '__main__':
     main()
