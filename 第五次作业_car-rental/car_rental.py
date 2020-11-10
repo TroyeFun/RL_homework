@@ -12,7 +12,7 @@ lam_return = [3, 2]
 gamma = 0.9
 errorThrd = 1
 
-resume = 0
+resume = 0  # -1 by default, or set to specific number to resume checkpoint of corresponding iter
 
 def main():
 
@@ -47,6 +47,7 @@ def main():
     if resume >= 0:
         print('resume iter {}'.format(resume))
         pi = np.load('pi-{}.npy'.format(resume))
+        V = np.load('V-{}.npy'.format(resume))
 
     def Q(s, a):
         i, j = s
@@ -55,15 +56,13 @@ def main():
         newi = i - a
         newj = j + a
         
-        total_prob = 0
-
-        for rent1 in range(i - a + 1):
-            p1 = prob_rent1[rent1] if rent1 < i else prob_ge_rent1[rent1]
-            car_left1 = i - a - rent1
+        for rent1 in range(newi + 1):
+            p1 = prob_rent1[rent1] if rent1 < newi else prob_ge_rent1[rent1]
+            car_left1 = newi - rent1
             max_return1 = 20 - car_left1
-            for rent2 in range(j + a + 1):
-                p2 = prob_rent2[rent2] if rent2 < j else prob_ge_rent2[rent2]
-                car_left2 = j + a - rent2
+            for rent2 in range(newj + 1):
+                p2 = prob_rent2[rent2] if rent2 < newj else prob_ge_rent2[rent2]
+                car_left2 = newj - rent2
                 max_return2 = 20 - car_left2
 
                 reward = -2 * abs(a) + 10 * (rent1 + rent2)
@@ -73,20 +72,19 @@ def main():
                     for return2 in range(max_return2 + 1):
                         p4 = prob_return2[return2] if return2 < max_return2 else prob_ge_return2[return2]
 
-                        newi = car_left1 + return1
-                        newj = car_left2 + return2
+
+                        nexti = car_left1 + return1
+                        nextj = car_left2 + return2
 
                         p = p1*p2*p3*p4
-                        value += p * (reward + gamma * V[newi, newj])
-                        total_prob += p
-        print('debug (i, j, a, total_prob)', i, j, a, total_prob)
+                        value += p * (reward + gamma * V[nexti, nextj])
         return value
 
     iter_count = -1
     while True:
         iter_count += 1
 
-        V = np.zeros((21, 21))  # reset V, or it will diverge (I don't know why)
+        # V = np.zeros((21, 21))  # reset V, or it will diverge (I don't know why)
 
         # evaluation
         eval_iter = 0
@@ -101,7 +99,7 @@ def main():
                     V[i, j] = new_value
             print('Debug {}: iteration {}-{}: error {}'.format(dt.now().strftime('%c'), iter_count, eval_iter, error))
 
-            if eval_iter % 1 == 0:
+            if eval_iter % 10 == 0:
                 print(V)
             eval_iter += 1
             if error < errorThrd:
