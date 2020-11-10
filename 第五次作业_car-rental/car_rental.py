@@ -50,8 +50,8 @@ def main():
         print('resume iter {}'.format(resume))
         assert os.path.exists('pi-{}.npy'.format(resume)) and os.path.exists('pi-{}.npy'.format(resume)), \
             'file pi-{} or V-{} not exists.'.format(resume, resume)
-        pi = np.load('pi-{}.npy'.format(resume))
-        V = np.load('V-{}.npy'.format(resume))
+        pi = np.load('log/pi-{}.npy'.format(resume))
+        V = np.load('log/V-{}.npy'.format(resume))
         iter_count = resume
 
     def Q(s, a):
@@ -129,8 +129,11 @@ def main():
         print('improvement', iter_count, 'done.')
         print(pi)
 
-        np.save('pi-{}.npy'.format(iter_count), pi)
-        np.save('V-{}.npy'.format(iter_count), V)
+        if not os.path.exists('log'):
+            os.makedirs('log')
+
+        np.save('log/pi-{}.npy'.format(iter_count), pi)
+        np.save('log/V-{}.npy'.format(iter_count), V)
 
         if stable:
             break
