@@ -12,6 +12,7 @@ lam_return = [3, 2]
 gamma = 0.9
 errorThrd = 1
 
+resume = 0
 
 def main():
 
@@ -39,12 +40,23 @@ def main():
         prob_ge_return1[i] = prob_ge_return1[i-1] - prob_return1[i-1]
         prob_ge_return2[i] = prob_ge_return2[i-1] - prob_return2[i-1]
 
+
     V = np.zeros((21, 21))
     pi = np.zeros((21, 21), dtype=np.int)
+
+    if resume >= 0:
+        print('resume iter {}'.format(resume))
+        pi = np.load('pi-{}.npy'.format(resume))
 
     def Q(s, a):
         i, j = s
         value = 0
+
+        newi = i - a
+        newj = j + a
+        
+        total_prob = 0
+
         for rent1 in range(i - a + 1):
             p1 = prob_rent1[rent1] if rent1 < i else prob_ge_rent1[rent1]
             car_left1 = i - a - rent1
@@ -64,14 +76,20 @@ def main():
                         newi = car_left1 + return1
                         newj = car_left2 + return2
 
-                        value += p1*p2*p3*p4 * (reward + gamma * V[newi, newj])
+                        p = p1*p2*p3*p4
+                        value += p * (reward + gamma * V[newi, newj])
+                        total_prob += p
+        print('debug (i, j, a, total_prob)', i, j, a, total_prob)
         return value
 
     iter_count = -1
     while True:
         iter_count += 1
 
+        V = np.zeros((21, 21))  # reset V, or it will diverge (I don't know why)
+
         # evaluation
+        eval_iter = 0
         while True:
             error = 0
             for i in range(21):
@@ -81,7 +99,11 @@ def main():
                     new_value = Q((i, j), a)
                     error = max([error, abs(V[i, j] - new_value)])
                     V[i, j] = new_value
-            print('Debug {}: iteration {}: error {}'.format(dt.now().strftime('%c'), iter_count, error))
+            print('Debug {}: iteration {}-{}: error {}'.format(dt.now().strftime('%c'), iter_count, eval_iter, error))
+
+            if eval_iter % 1 == 0:
+                print(V)
+            eval_iter += 1
             if error < errorThrd:
                 break
         print('evaluation', iter_count, 'done.')
@@ -104,6 +126,10 @@ def main():
                     pi[i, j] = best_a
         print('improvement', iter_count, 'done.')
         print(pi)
+
+        np.save('pi-{}.npy'.format(iter_count), pi)
+        np.save('V-{}.npy'.format(iter_count), V)
+
         if stable:
             break
 
